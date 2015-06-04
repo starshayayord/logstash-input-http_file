@@ -28,46 +28,37 @@ class LogStash::Inputs::Http < LogStash::Inputs::Base
    uri = URI(@url)
    http = Net::HTTP.start(uri.host, uri.port) 
    response = http.request_head(@url)	
-   $file_size = (response['Content-Length']).to_i   
-   #get 1024 hash current file
-   http = Net::HTTP.new(uri.host, uri.port)
-	headers = { 
-     'Range' => "bytes=0-1024"
-    }
-   response_hash = http.get(uri.path, headers)
-   current_hash = Digest::MD5.hexdigest(response_hash.body)  
+   $file_size = (response['Content-Length']).to_i  
+   new_file_size = 0    
    ###begin tail cycle###
    Stud.interval(@interval) do   
-   #get temp 1024 hash   
-    http = Net::HTTP.new(uri.host, uri.port)
-	headers = { 
-     'Range' => "bytes=0-1024"
-    }
-    response_hash = http.get(uri.path, headers)		
-    temp_hash = Digest::MD5.hexdigest(response_hash.body)
-	if current_hash == temp_hash
+   #new file size  
+    http = Net::HTTP.start(uri.host, uri.port) 
+	response = http.request_head(@url)	
+	new_file_size = (response['Content-Length']).to_i
+    if new_file_size >= $file_size
      #same file    
-	 #@logger.error("++SAME FILE++")	 
+	 @logger.error("++SAME FILE++")	 		 
      http = Net::HTTP.new(uri.host, uri.port)
 	 headers = { 
       'Range' => "bytes=#{$file_size}-"
      }		
 	 response = http.get(uri.path, headers)
 	 if (200..226) === (response.code).to_i
-	 #@logger.error("++SAME FILE 200++")	 
-	  $file_size += (response['Content-Length']).to_i			
-	  (response.body).slice!"\r\n"
-	  messages = response.body	 
-	  #@logger.error("++MESSAGE++", :messages => messages)	  
+	 @logger.error("++SAME FILE 200++")	 
+	  $file_size += (response['Content-Length']).to_i	  
+	  messages = (response.body).lstrip	 
+	  @logger.error("++MESSAGE++", :messages => messages)	  
 	  messages.each_line do |message| 
-	   message.slice!"\r"
-	   message.slice!"\n"
-	   event = LogStash::Event.new("message" => message, "host" => @host)
-       decorate(event)
-       queue << event
+	  message = message.chomp 	   
+	   if message != '' 
+	    event = LogStash::Event.new("message" => message, "host" => @host)
+        decorate(event)
+        queue << event
+	   end
 	  end # end do
 	 else
-	  #@logger.error("++SAME FILE NOT 200++")
+	  @logger.error("++SAME FILE NOT 200++")
 	 end #end if code 
      else
 	   #new file	   		   
@@ -76,25 +67,19 @@ class LogStash::Inputs::Http < LogStash::Inputs::Base
        http = Net::HTTP.start(uri.host, uri.port) 
        response = http.get(uri.path)
 	   if (200..226) === (response.code).to_i	
-		#@logger.error("++NEW FILE 200++")	   
+		@logger.error("++NEW FILE 200++")	   
         $file_size = (response['Content-Length']).to_i
-		(response.body).slice!"\r\n"
-		messages = response.body	 
-		#@logger.error("++MESSAGE++", :messages => messages)	  
-		messages.each_line do |message| 
-		 message.slice!"\r"
-		 message.slice!"\n"
-		 event = LogStash::Event.new("message" => message, "host" => @host)
-		 decorate(event)
-		 queue << event
-		end # end do
-        #get 1024 hash
-        http = Net::HTTP.new(uri.host, uri.port)
-	    headers = { 
-         'Range' => "bytes=0-1024"
-        }
-        response = http.get(uri.path, headers)
-        current_hash = Digest::MD5.hexdigest(response.body)
+		messages = (response.body).lstrip	 
+	  @logger.error("++MESSAGE++", :messages => messages)	  
+	  messages.each_line do |message| 
+	  message = message.chomp 	   
+	   if message != '' 
+	    event = LogStash::Event.new("message" => message, "host" => @host)
+        decorate(event)
+        queue << event
+	   end
+	  end 
+        #get 1024 hash        
 	  else
 	   #@logger.error("++NEW FILE NOT 200++")
 	  end #end if code
@@ -102,3 +87,4 @@ class LogStash::Inputs::Http < LogStash::Inputs::Base
     end # loop  
   end #end run
  end #class
+
