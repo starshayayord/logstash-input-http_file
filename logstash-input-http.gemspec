@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "Tail log file from http url"
   s.authors = ["StarshayaYord"]
   s.email = 'starshayayord@gmail.com'
-  s.homepage = ""
+  s.homepage = "https://github.com/starshayayord/logstash-input-http"
   s.require_paths = ["lib"]
 
   # Files

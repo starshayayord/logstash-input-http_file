@@ -9,7 +9,6 @@ require "digest/md5"
 class LogStash::Inputs::Http < LogStash::Inputs::Base
   class Interrupted < StandardError; end
   config_name "http"
-  milestone 0
   default :codec, "plain"
   # The url to listen on.
   config :url, :validate => :string, :required => true
