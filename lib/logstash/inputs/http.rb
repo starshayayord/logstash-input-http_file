@@ -14,6 +14,8 @@ class LogStash::Inputs::Http < LogStash::Inputs::Base
   config :url, :validate => :string, :required => true
   # refresh interval
   config :interval, :validate => :number, :default => 5
+  #start position 
+  config :start_position, :validate => [ "beginning", "end"], :default => "end"
   def initialize(*args)
     super(*args)
   end # def initialize
@@ -24,10 +26,14 @@ class LogStash::Inputs::Http < LogStash::Inputs::Base
 	 @logger.info("HTTP PLUGIN LOADED")
   end # def register
   def run(queue)
-   uri = URI(@url)
-   http = Net::HTTP.start(uri.host, uri.port) 
-   response = http.request_head(@url)	
-   $file_size = (response['Content-Length']).to_i  
+   uri = URI(@url)  
+   if @start_position == "beginning"
+    $file_size = 0
+   else	
+    http = Net::HTTP.start(uri.host, uri.port) 
+    response = http.request_head(@url)	
+    $file_size = (response['Content-Length']).to_i 
+   end #end if 
    new_file_size = 0    
    ###begin tail cycle###
    Stud.interval(@interval) do   
