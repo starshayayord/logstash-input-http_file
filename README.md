@@ -12,6 +12,7 @@ input {
 	http {
     	url => ... # string (required), example: "http://example.com/file.log"
         interval => ... # number (optional), default: 5, interval between get reads
+        start_position => # string (optional) "beginning" or "end", default: end, start position to start reading: if set to "beginning",  file will be read from the beginning always when logstash service starts.
     }
 }
 ```
